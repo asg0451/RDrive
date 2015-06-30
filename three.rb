@@ -26,7 +26,7 @@ APPLICATION_NAME = 'RDrive'
 CLIENT_SECRETS_PATH = 'client_secret.json'
 CREDENTIALS_PATH = File.join(Dir.home, '.credentials',
                              "rdrive.json")
-SCOPE = 'https://www.googleapis.com/auth/drive.metadata.readonly' # is error here???
+SCOPE = 'https://www.googleapis.com/auth/drive' # full permissions atm
 
 ##
 # Ensure valid credentials, either by restoring from the saved credentials
@@ -60,7 +60,7 @@ client.authorization = authorize
 drive_api = client.discovered_api('drive', 'v2')
 #########################################################################
 
-params = { maxResults: 50 }
+params = { maxResults: 20 }
 fs = client.execute(
   api_method: drive_api.files.list,
   parameters: params
@@ -76,13 +76,13 @@ end
 fs.map do |f|
   if !(f[:durl].nil?)
     f[:contents] = client.execute( uri: f[:durl]  )
-
-  else if !(f[:expLink].nil?)
-    f[:contents] = client.execute( uri: f[:expLink]['text/plain']  )
   end
+  # else if !(f[:expLink].nil?)
+  #   f[:contents] = client.execute( uri: f[:expLink] ) #['text/plain']  )  # something is fucky here
+#  end
   f[:check] = "oaw"
   f
-end
+
 
 puts fs
 #  root.write_to('/'+f[:title], data)
