@@ -26,7 +26,7 @@ APPLICATION_NAME = 'RDrive'
 CLIENT_SECRETS_PATH = 'client_secret.json'
 CREDENTIALS_PATH = File.join(Dir.home, '.credentials',
                              "rdrive.json")
-SCOPE = 'https://www.googleapis.com/auth/drive.metadata.readonly'
+SCOPE = 'https://www.googleapis.com/auth/drive.metadata.readonly' # is error here???
 
 ##
 # Ensure valid credentials, either by restoring from the saved credentials
