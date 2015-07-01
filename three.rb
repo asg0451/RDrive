@@ -70,24 +70,50 @@ files = fs.data.items
 puts files
 
 fs = files.map do |i|
-  {id: i.id, title: i.title, durl: i.download_url, expLink: i.export_links} # docs dont expose durl, use explink instead
+  if i['exportLinks'].nil?
+    { id: i.id, title: i.title, durl: i.download_url, expLink: i.export_links, ext: i.file_extension, type: nil }
+  else
+    { id: i.id, title: i.title, durl: i.download_url, expLink: i.export_links, ext: i['fileExtension'], type: i['exportLinks'].to_hash.keys }
+  end
+  # docs dont expose durl, use explink instead
 end
 
 fs.map do |f|
   if !(f[:durl].nil?)
     f[:contents] = client.execute( uri: f[:durl]  )
+  else
+    if !(f[:expLink].nil?)
+      f[:contents] = client.execute( uri: f[:expLink][ f[:type][0] ] )  # just pick first available type for now
+    end
   end
-  # else if !(f[:expLink].nil?)
-  #   f[:contents] = client.execute( uri: f[:expLink] ) #['text/plain']  )  # something is fucky here
-#  end
   f[:check] = "oaw"
+#  puts fs
+
+  puts f
+  if !(f[:contents].nil? or f[:contents].body.nil?)
+    if !(f[:type].nil?)
+      if f[:type][0] = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' # check for gdocs, temp solution
+#        binding.pry
+        if f[:ext].nil?
+          root.write_to('/'+f[:title] + '.xls', f[:contents].body) # gdoc
+        else
+          root.write_to('/'+f[:title], f[:contents].body) # some other kind of doc?
+        end
+      elsif
+        root.write_to('/'+f[:title], f[:contents].body) # some other type
+      end
+    else
+      root.write_to('/'+ f[:title] + '.' + f[:ext], f[:contents].body)
+    end
+  end
   f
-
-
-puts fs
-#  root.write_to('/'+f[:title], data)
 end
 
 
 
-#FuseFS.main(ARGV) { | options | root }
+
+#binding.pry
+
+
+
+FuseFS.main(ARGV) { | options | root }
