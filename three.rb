@@ -60,6 +60,9 @@ client.authorization = authorize
 drive_api = client.discovered_api('drive', 'v2')
 #########################################################################
 
+### TODO: algorithm.
+## grab each file only when accessed, then write it to that file for duration of program
+
 params = { maxResults: 20 }
 fs = client.execute(
   api_method: drive_api.files.list,
@@ -67,49 +70,45 @@ fs = client.execute(
 )
 
 files = fs.data.items
-puts files
 
 fs = files.map do |i|
-  if i['exportLinks'].nil?
-    { id: i.id, title: i.title, durl: i.download_url, expLink: i.export_links, ext: i.file_extension, type: nil }
-  else
-    { id: i.id, title: i.title, durl: i.download_url, expLink: i.export_links, ext: i['fileExtension'], type: i['exportLinks'].to_hash.keys }
-  end
+  types = i['exportLinks'].nil? ? nil : i['exportLinks'].to_hash.keys
+  { id: i.id, title: i.title, durl: i.download_url, expLink: i.export_links, ext: i.file_extension, type: types }
   # docs dont expose durl, use explink instead
 end
 
 fs.map do |f|
   if !(f[:durl].nil?)
     f[:contents] = client.execute( uri: f[:durl]  )
-  else
-    if !(f[:expLink].nil?)
+  elsif !(f[:expLink].nil?)
       f[:contents] = client.execute( uri: f[:expLink][ f[:type][0] ] )  # just pick first available type for now
-    end
   end
   f[:check] = "oaw"
-#  puts fs
-
   puts f
-  if !(f[:contents].nil? or f[:contents].body.nil?)
-    if !(f[:type].nil?)
-      if f[:type][0] = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' # check for gdocs, temp solution
-#        binding.pry
-        if f[:ext].nil?
-          root.write_to('/'+f[:title] + '.xls', f[:contents].body) # gdoc
-        else
-          root.write_to('/'+f[:title], f[:contents].body) # some other kind of doc?
-        end
-      elsif
-        root.write_to('/'+f[:title], f[:contents].body) # some other type
-      end
+
+  fname = '/'
+  #
+  # cases: has ext, no ext but gdoc format, nothing
+  #
+  if !(f[:contents].nil? or f[:contents].body.nil? or f[:contents].body.empty?) # can't access for some reason
+     #### case 1
+    if f[:title] =~ /\.[a-z0-9A-Z]+$/ # has extension in name
+      fname = f[:title]
+    elsif !f[:ext].nil? # has extension in name
+      fname = f[:title] + f[:ext]
+    #### case 2
+    elsif f[:type].include?('application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+      fname = f[:title] + '.doc' # or .xls ... not sure
+    elsif f[:type].include?('text/html') # downloading as text for now
+      fname = f[:title] + '.html'
+    #### case 3
     else
-      root.write_to('/'+ f[:title] + '.' + f[:ext], f[:contents].body)
+      fname = f[:title]
     end
-  end
+  root.write_to(fname, f[:contents].body)
   f
+  end
 end
-
-
 
 
 #binding.pry
