@@ -9,6 +9,8 @@ include FuseFS
 ### TODO: algorithm.
 ## grab each file only when accessed, then write it to that file for duration of program
 
+### TODO: fix shared files being downloaded like gdocs
+
 class Rdrive_Writer
 
   def pick_format(f) # returns type
